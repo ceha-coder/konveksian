@@ -1,0 +1,136 @@
+:root {
+    --sidebar-width: 265px;
+    --bg-body: #f4f6f9;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-body);
+    color: #212529;
+    overflow-x: hidden;
+}
+
+/* LAYOUT SIDEBAR & MAIN CONTENT */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1035;
+    transition: transform 0.25s ease-in-out;
+}
+
+.sidebar .nav-link {
+    color: #adb5bd;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.sidebar .nav-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar .nav-link.active {
+    color: #fff;
+    background-color: #0d6efd;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.35);
+}
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    min-width: 0;
+}
+
+/* KPI CARDS */
+.kpi-card {
+    border-radius: 0.75rem;
+    transition: transform 0.15s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.kpi-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* LOADER OVERLAY */
+.loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* MOCKUP THUMBNAIL */
+.spk-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 0.4rem;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+}
+
+/* RESPONSIVE SIDEBAR DI MOBILE */
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+/* ATURAN CETAK (PRINT-FRIENDLY SPK & SURAT JALAN) */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 12pt;
+    }
+    .d-print-none {
+        display: none !important;
+    }
+    #printArea {
+        display: block !important;
+        width: 100%;
+    }
+    .print-box {
+        border: 2px solid #000;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .print-table th,
+    .print-table td {
+        border: 1px solid #000 !important;
+        padding: 6px 8px !important;
+    }
+}
