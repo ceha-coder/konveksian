@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Konveksi MTO - Hulu ke Hilir</title>
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- DataTables Bootstrap 5 & Buttons CSS -->
+    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Style -->
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- OVERLAY LOADING GLOBAL -->
+<div id="globalLoader" class="loader-overlay d-none">
+    <div class="text-center bg-white p-4 rounded-4 shadow-lg">
+        <div class="spinner-border text-primary mb-2" role="status"></div>
+        <div class="fw-semibold text-dark" id="loaderText">Memuat data...</div>
+    </div>
+</div>
+
+<!-- WRAPPER UTAMA SPA (DISEMBUNYIKAN SAAT CETAK) -->
+<div class="app-wrapper d-print-none">
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar bg-dark text-white" id="sidebarNav">
+        <div class="sidebar-header p-3 border-bottom border-secondary d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                    <i class="fa-solid fa-shirt fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-bold">KONVEKSI PRO</h6>
+                    <small class="text-secondary" style="font-size: 0.72rem;">MTO Garment ERP System</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-light d-lg-none" id="btnCloseSidebar">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-3">
+            <div class="text-uppercase text-secondary fw-bold mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">Menu Operasional</div>
+            <ul class="nav nav-pills flex-column gap-1" id="mainNavigation">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active nav-module-link" data-target="sec-dashboard">
+                        <i class="fa-solid fa-chart-pie me-2"></i> 1. Dashboard Eksekutif
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link nav-module-link" data-target="sec-hulu">
+                        <i class="fa-solid fa-file-signature me-2"></i> 2. Hulu: Pesanan & SPK
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link nav-module-link" data-target="sec-tengah">
+                        <i class="fa-solid fa-gears me-2"></i> 3. Tengah: WIP & Makloon
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link nav-module-link" data-target="sec-hilir">
+                        <i class="fa-solid fa-clipboard-check me-2"></i> 4. Hilir: QC & Packing
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link nav-module-link" data-target="sec-payroll">
+                        <i class="fa-solid fa-money-check-dollar me-2"></i> 5. Gaji Borongan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link nav-module-link" data-target="sec-master-keuangan">
+                        <i class="fa-solid fa-warehouse me-2"></i> 6. Gudang, Master & Kas
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="mt-auto p-3 border-top border-secondary">
+            <div class="small text-secondary mb-1">Status Database:</div>
+            <div id="dbConnectionBadge" class="badge bg-secondary w-100 py-2">
+                <i class="fa-solid fa-circle-notch fa-spin me-1"></i> Menghubungkan...
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+        <!-- TOP NAVBAR -->
+        <header class="top-navbar bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between sticky-top">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary d-lg-none" id="btnToggleSidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark" id="pageHeaderTitle">Dashboard Eksekutif</h5>
+                    <small class="text-muted" id="pageHeaderSubtitle">Pantauan real-time SPK, deadline produksi, piutang, dan upah tukang</small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshAllData()">
+                    <i class="fa-solid fa-rotate me-1"></i> Sinkronkan Data
+                </button>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+
+            <!-- ============================================================== -->
+            <!-- MODUL 1: DASHBOARD EKSEKUTIF                                   -->
+            <!-- ============================================================== -->
+            <section id="sec-dashboard" class="spa-section">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card kpi-card border-0 shadow-sm h-100 border-start border-primary border-4">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold text-uppercase">Total SPK Aktif</div>
+                                    <h3 class="fw-bold mb-1 text-primary" id="kpiSpkAktif">0</h3>
+                                    <small class="text-muted" id="kpiTotalPcsAktif">0 Pcs sedang diproduksi</small>
+                                </div>
+                                <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fa-solid fa-industry fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card kpi-card border-0 shadow-sm h-100 border-start border-danger border-4">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold text-uppercase">SPK Deadline &le; H-3</div>
+                                    <h3 class="fw-bold mb-1 text-danger" id="kpiSpkDeadline">0</h3>
+                                    <small class="text-muted">Perlu prioritas pengiriman</small>
+                                </div>
+                                <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+                                    <i class="fa-solid fa-triangle-exclamation fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card kpi-card border-0 shadow-sm h-100 border-start border-warning border-4">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold text-uppercase">Total Piutang Klien</div>
+                                    <h4 class="fw-bold mb-1 text-dark" id="kpiTotalPiutang">Rp 0</h4>
+                                    <small class="text-muted" id="kpiCountBelumLunas">0 Invoice belum lunas</small>
+                                </div>
+                                <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fa-solid fa-hand-holding-dollar fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="card kpi-card border-0 shadow-sm h-100 border-start border-success border-4">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold text-uppercase">Tagihan Upah Belum Bayar</div>
+                                    <h4 class="fw-bold mb-1 text-success" id="kpiEstimasiUpah">Rp 0</h4>
+                                    <small class="text-muted">Siap rekap gajian Sabtu</small>
+                                </div>
+                                <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fa-solid fa-users-gear fs-3"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Pantauan Cepat SPK Berjalan -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-satellite-dish text-primary me-2"></i>Pantauan Cepat SPK Sedang Berjalan (Live WIP)</h6>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-primary" onclick="navigateToSection('sec-hulu')">
+                                <i class="fa-solid fa-plus me-1"></i> Buat Pesanan / SPK
+                            </button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="navigateToSection('sec-master-keuangan')">
+                                <i class="fa-solid fa-boxes-stacked me-1"></i> Cek Stok Bahan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tableDashboardSpk" class="table table-hover align-middle w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>No. SPK</th>
+                                        <th>Klien / Instansi</th>
+                                        <th>Lini Produk & Bahan</th>
+                                        <th>Deadline</th>
+                                        <th>Qty Pesan / Potong</th>
+                                        <th>Tahapan Saat Ini</th>
+                                        <th>Aksi Cepat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyDashboardSpk"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- MODUL 2: HULU - PESANAN KLIEN & GENERATOR SPK                  -->
+            <!-- ============================================================== -->
+            <section id="sec-hulu" class="spa-section d-none">
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#subtab-pesanan" type="button">
+                            <i class="fa-solid fa-file-invoice-dollar me-1"></i> 1. Daftar Pesanan Induk (Invoice Klien)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#subtab-spk" type="button">
+                            <i class="fa-solid fa-scroll me-1"></i> 2. Daftar Item SPK & Kalkulator BOM
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Sub-tab Pesanan Induk -->
+                    <div class="tab-pane fade show active" id="subtab-pesanan">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Daftar Pesanan Induk & Piutang Klien</h6>
+                                <button class="btn btn-primary btn-sm" onclick="openModalPesanan()">
+                                    <i class="fa-solid fa-plus me-1"></i> Tambah Pesanan Baru
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tablePesananInduk" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>No. Invoice</th>
+                                                <th>Klien & Instansi</th>
+                                                <th>Tgl Pesan & Deadline</th>
+                                                <th>Total Tagihan</th>
+                                                <th>Sudah Dibayar</th>
+                                                <th>Sisa Piutang</th>
+                                                <th>Status Bayar</th>
+                                                <th>Status Order</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyPesananInduk"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-tab Daftar SPK -->
+                    <div class="tab-pane fade" id="subtab-spk">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Daftar Surat Perintah Kerja (SPK) per Komponen Produk</h6>
+                                <button class="btn btn-success btn-sm" onclick="openModalSpk()">
+                                    <i class="fa-solid fa-file-circle-plus me-1"></i> Buat SPK Komponen Baru
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableSpkHulu" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Mockup</th>
+                                                <th>No. SPK & Invoice</th>
+                                                <th>Produk & Aplikasi</th>
+                                                <th>Bahan & Warna</th>
+                                                <th>Qty Pesan</th>
+                                                <th>Estimasi BOM Kain</th>
+                                                <th>Tahapan</th>
+                                                <th>Aksi & Cetak</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodySpkHulu"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- MODUL 3: TENGAH - LANTAI PRODUKSI (WIP) & KONTROL MAKLOON      -->
+            <!-- ============================================================== -->
+            <section id="sec-tengah" class="spa-section d-none">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-diagram-project text-primary me-2"></i>Papan Kontrol Tahapan Lantai Produksi (WIP)</h6>
+                            <small class="text-muted">Alur wajib: Antri Potong &rarr; Cutting (Wajib Input Hasil Potong Riil) &rarr; Sablon/Bordir &rarr; Sewing &rarr; Kancing &rarr; QC &amp; Trimming &rarr; Steam &amp; Packing &rarr; Selesai</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tableWipProduksi" class="table table-hover align-middle w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>No. SPK</th>
+                                        <th>Klien & Produk</th>
+                                        <th>Aplikasi</th>
+                                        <th>Qty Pesan</th>
+                                        <th>Qty Hasil Potong (Batas WIP)</th>
+                                        <th>Tahapan Saat Ini</th>
+                                        <th>Kontrol Tahapan & Distribusi Tukang</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyWipProduksi"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Distribusi Tukang & Surat Jalan Makloon -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-people-arrows text-success me-2"></i>Log Distribusi Pekerjaan Tukang & Vendor Makloon</h6>
+                            <small class="text-muted">Memantau pecahan kuota pengerjaan per penjahit/vendor agar tidak melebihi Qty Hasil Potong</small>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="openModalDistribusiTukang()">
+                            <i class="fa-solid fa-share-nodes me-1"></i> Bagi Pekerjaan ke Tukang/Vendor
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tableLogDistribusi" class="table table-striped align-middle w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tgl Mulai</th>
+                                        <th>No. SPK</th>
+                                        <th>Pekerja / Vendor</th>
+                                        <th>Tahapan</th>
+                                        <th>Qty Diserahkan</th>
+                                        <th>Selesai Bagus</th>
+                                        <th>Reject</th>
+                                        <th>Tarif / Pcs</th>
+                                        <th>Total Upah</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyLogDistribusi"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- MODUL 4: HILIR - QUALITY CONTROL (QC), PACKING & SURAT JALAN   -->
+            <!-- ============================================================== -->
+            <section id="sec-hilir" class="spa-section d-none">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3">
+                                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-magnifying-glass-chart text-primary me-2"></i>1. Pemeriksaan Quality Control (QC) Setoran Tukang / Vendor</h6>
+                                <small class="text-muted">Catat jumlah barang lolos QC vs barang reject per penjahit sebagai dasar perhitungan upah borongan otomatis</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableQcTukang" class="table table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>No. SPK</th>
+                                                <th>Nama Tukang / Vendor</th>
+                                                <th>Tahapan</th>
+                                                <th>Qty Diserahkan</th>
+                                                <th>Qty Lolos Bagus</th>
+                                                <th>Qty Reject</th>
+                                                <th>Tgl Selesai</th>
+                                                <th>Status Bayar</th>
+                                                <th>Input Hasil QC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyQcTukang"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3">
+                                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-truck-fast text-success me-2"></i>2. Rekap Barang Jadi, Packing List & Cetak Surat Jalan</h6>
+                                <small class="text-muted">Cetak Daftar Packing (dikelompokkan per ukuran & kelas/kamar) serta Surat Jalan pengiriman ke klien</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tablePackingSpk" class="table table-striped align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>No. SPK</th>
+                                                <th>Klien / Instansi</th>
+                                                <th>Produk</th>
+                                                <th>Qty Pesan</th>
+                                                <th>Qty Potong</th>
+                                                <th>Total Lolos QC</th>
+                                                <th>Total Reject</th>
+                                                <th>Status Tahapan</th>
+                                                <th>Cetak Dokumen Hilir</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyPackingSpk"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- MODUL 5: PENGGAJIAN BORONGAN (PIECE-RATE PAYROLL)              -->
+            <!-- ============================================================== -->
+            <section id="sec-payroll" class="spa-section d-none">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Filter Tukang / Vendor</label>
+                                <select id="filterPayrollPekerja" class="form-select form-select-sm">
+                                    <option value="">-- Semua Pekerja & Vendor --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Status Pembayaran</label>
+                                <select id="filterPayrollStatus" class="form-select form-select-sm">
+                                    <option value="Belum Dibayar">Belum Dibayar</option>
+                                    <option value="Sudah Dibayar">Sudah Dibayar</option>
+                                    <option value="">Semua Status</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Dari Tanggal Mulai</label>
+                                <input type="date" id="filterPayrollStart" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Sampai Tanggal</label>
+                                <input type="date" id="filterPayrollEnd" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button class="btn btn-sm btn-primary w-100" onclick="renderTablePayroll()">
+                                    <i class="fa-solid fa-filter me-1"></i> Terapkan Filter
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="resetFilterPayroll()">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Rekapitulasi Upah Borongan Tukang & Tagihan Makloon</h6>
+                            <small class="text-muted">Total Belum Dibayar (Sesuai Filter): <strong class="text-danger fs-6" id="summaryTotalUpahBelumBayar">Rp 0</strong> (<span id="summaryTotalItemBelumBayar">0</span> pekerjaan)</small>
+                        </div>
+                        <button class="btn btn-success btn-sm" onclick="prosesBayarUpahTerfilter()">
+                            <i class="fa-solid fa-money-bill-wave me-1"></i> Proses Bayar Semua Upah Terfilter
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tablePayroll" class="table table-striped table-hover align-middle w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tgl Mulai/Selesai</th>
+                                        <th>Nama Pekerja / Vendor</th>
+                                        <th>Tipe</th>
+                                        <th>No. SPK & Produk</th>
+                                        <th>Tahapan</th>
+                                        <th>Qty Bagus</th>
+                                        <th>Tarif / Pcs</th>
+                                        <th>Total Upah</th>
+                                        <th>Status</th>
+                                        <th>Aksi Bayar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyPayroll"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- MODUL 6: GUDANG BAHAN, MASTER DATA & KAS KEUANGAN              -->
+            <!-- ============================================================== -->
+            <section id="sec-master-keuangan" class="spa-section d-none">
+                <ul class="nav nav-pills mb-3 gap-2" id="masterSubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-gudang-bahan" type="button">
+                            <i class="fa-solid fa-boxes-stacked me-1"></i> 1. Gudang Kain & Aksesoris
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-master-produk" type="button">
+                            <i class="fa-solid fa-tags me-1"></i> 2. Master 7 Lini Produk & Tarif BOM
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-master-pekerja" type="button">
+                            <i class="fa-solid fa-users me-1"></i> 3. Master Tukang & Vendor Makloon
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#tab-kas-keuangan" type="button">
+                            <i class="fa-solid fa-wallet me-1"></i> 4. Buku Kas & Arus Keuangan
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- TAB 1: GUDANG BAHAN -->
+                    <div class="tab-pane fade show active" id="tab-gudang-bahan">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Inventaris Gudang Kain & Aksesoris (`master_bahan`)</h6>
+                                    <small class="text-muted">Kelola stok kain rajut, kain tenun, dan aksesoris produksi</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-warning btn-sm" onclick="openModalMutasiStok()">
+                                        <i class="fa-solid fa-right-left me-1"></i> Mutasi Masuk / Keluar Stok
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" onclick="openModalBahan()">
+                                        <i class="fa-solid fa-plus me-1"></i> Tambah Bahan Baru
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableMasterBahan" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Kode</th>
+                                                <th>Nama Bahan / Aksesoris</th>
+                                                <th>Kategori</th>
+                                                <th>Stok Saat Ini</th>
+                                                <th>Satuan</th>
+                                                <th>Harga Beli Terakhir</th>
+                                                <th>Nilai Inventaris</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMasterBahan"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: MASTER PRODUK & TARIF -->
+                    <div class="tab-pane fade" id="tab-master-produk">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Standar BOM & Matriks Tarif Upah Borongan (`master_produk_tarif`)</h6>
+                                    <small class="text-muted">Konfigurasi 7 lini produk konveksi beserta konsumsi kain dan upah per tahapan</small>
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="openModalProduk()">
+                                    <i class="fa-solid fa-plus me-1"></i> Tambah Varian Produk & Tarif
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableMasterProduk" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Lini Kategori Produk</th>
+                                                <th>Nama Varian</th>
+                                                <th>Est. Konsumsi Kain</th>
+                                                <th>Potong</th>
+                                                <th>Jahit</th>
+                                                <th>Obras/Neci</th>
+                                                <th>Kancing</th>
+                                                <th>Finishing</th>
+                                                <th>Total Upah/Pcs</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMasterProduk"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: MASTER PEKERJA & VENDOR -->
+                    <div class="tab-pane fade" id="tab-master-pekerja">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Data Tukang Internal & Vendor Subkontraktor (`master_pekerja_vendor`)</h6>
+                                    <small class="text-muted">Daftar SDM produksi dan rekanan makloon sablon/bordir/jahit</small>
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="openModalPekerja()">
+                                    <i class="fa-solid fa-user-plus me-1"></i> Tambah Tukang / Vendor
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableMasterPekerja" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nama Tukang / Vendor</th>
+                                                <th>Tipe</th>
+                                                <th>Spesialisasi</th>
+                                                <th>No. WhatsApp</th>
+                                                <th>Status</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyMasterPekerja"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: BUKU KAS & ARUS KEUANGAN -->
+                    <div class="tab-pane fade" id="tab-kas-keuangan">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+                                    <div class="card-body">
+                                        <div class="small fw-semibold text-success text-uppercase">Total Pemasukan Kas</div>
+                                        <h4 class="fw-bold text-success mb-0" id="kpiKasMasuk">Rp 0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm bg-danger bg-opacity-10">
+                                    <div class="card-body">
+                                        <div class="small fw-semibold text-danger text-uppercase">Total Pengeluaran Kas</div>
+                                        <h4 class="fw-bold text-danger mb-0" id="kpiKasKeluar">Rp 0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm bg-primary bg-opacity-10">
+                                    <div class="card-body">
+                                        <div class="small fw-semibold text-primary text-uppercase">Saldo Akhir Kas</div>
+                                        <h4 class="fw-bold text-primary mb-0" id="kpiSaldoAkhir">Rp 0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <h6 class="mb-0 fw-bold">Buku Kas Arus Keuangan (`transaksi_keuangan`)</h6>
+                                <button class="btn btn-primary btn-sm" onclick="openModalTransaksiKas()">
+                                    <i class="fa-solid fa-plus me-1"></i> Catat Transaksi Kas Manual
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tableTransaksiKeuangan" class="table table-striped table-hover align-middle w-100">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Tanggal</th>
+                                                <th>Jenis</th>
+                                                <th>Kategori</th>
+                                                <th>Nominal</th>
+                                                <th>Keterangan</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyTransaksiKeuangan"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<!-- ====================================================================== -->
+<!-- AREA CETAK DOKUMEN (SPK PRODUKSI & SURAT JALAN / PACKING LIST)         -->
+<!-- Hanya tampil saat window.print() dipanggil                             -->
+<!-- ====================================================================== -->
+<div id="printArea" class="d-none d-print-block p-3"></div>
+
+<!-- ====================================================================== -->
+<!-- KUMPULAN MODAL BOOTSTRAP 5 UNTUK SELURUH OPERASI CRUD                  -->
+<!-- ====================================================================== -->
+
+<!-- 1. MODAL MASTER BAHAN -->
+<div class="modal fade" id="modalBahan" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formBahan" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="modalBahanTitle">Tambah Bahan / Aksesoris</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bahanId">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Kode Bahan *</label>
+                        <input type="text" id="kodeBahan" class="form-control" placeholder="BHN-009" required>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold">Kategori *</label>
+                        <select id="kategoriBahan" class="form-select" required>
+                            <option value="Kain Rajut">Kain Rajut</option>
+                            <option value="Kain Tenun">Kain Tenun</option>
+                            <option value="Aksesoris">Aksesoris</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Nama Bahan / Aksesoris *</label>
+                        <input type="text" id="namaBahan" class="form-control" placeholder="Contoh: Cotton Combed 30s Navy" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Satuan *</label>
+                        <select id="satuanBahan" class="form-select" required>
+                            <option value="Kg">Kg</option>
+                            <option value="Meter">Meter</option>
+                            <option value="Yard">Yard</option>
+                            <option value="Pcs">Pcs</option>
+                            <option value="Lusin">Lusin</option>
+                            <option value="Roll">Roll</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Stok Saat Ini *</label>
+                        <input type="number" step="0.01" id="stokSaatIni" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Harga Beli / Satuan *</label>
+                        <input type="number" step="100" id="hargaBeliTerakhir" class="form-control" value="0" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Bahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. MODAL MUTASI STOK GUDANG (MASUK / KELUAR) -->
+<div class="modal fade" id="modalMutasiStok" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formMutasiStok" class="modal-content">
+            <div class="modal-header bg-warning bg-opacity-25">
+                <h6 class="modal-title fw-bold"><i class="fa-solid fa-right-left me-1"></i> Mutasi Keluar / Masuk Stok Gudang</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Pilih Bahan / Aksesoris *</label>
+                    <select id="mutasiBahanId" class="form-select" required></select>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Jenis Mutasi *</label>
+                        <select id="mutasiJenis" class="form-select" required>
+                            <option value="MASUK">Stok Masuk (Beli / Retur)</option>
+                            <option value="KELUAR">Stok Keluar (Pakai Produksi)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Jumlah Kuantitas *</label>
+                        <input type="number" step="0.01" min="0.01" id="mutasiQty" class="form-control" required>
+                    </div>
+                    <div class="col-12" id="wrapMutasiHarga">
+                        <label class="form-label small fw-semibold">Harga Beli Baru per Satuan (Rp)</label>
+                        <input type="number" step="100" id="mutasiHargaSatuan" class="form-control" placeholder="Kosongkan jika harga tetap">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="mutasiCatatKas" checked>
+                            <label class="form-check-label small" for="mutasiCatatKas">
+                                Otomatis catat pembelian bahan ini sebagai <strong>Pengeluaran</strong> di Buku Kas Keuangan
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Keterangan Mutasi</label>
+                        <input type="text" id="mutasiKeterangan" class="form-control" placeholder="Contoh: Beli 3 Roll Combed 30s Toko Knitto / Pakai SPK-001">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-warning fw-semibold">Proses Mutasi Stok</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. MODAL MASTER PRODUK & TARIF -->
+<div class="modal fade" id="modalProduk" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="formProduk" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="modalProdukTitle">Tambah Varian Produk & Matriks Tarif</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="produkId">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Kategori 7 Lini Produk *</label>
+                        <select id="kategoriProduk" class="form-select" required>
+                            <option value="Kaos Olahraga">1. Kaos Olahraga</option>
+                            <option value="Jas Almamater">2. Jas Almamater</option>
+                            <option value="Kaos Komunitas">3. Kaos Komunitas</option>
+                            <option value="Kemeja Kerja / PDH / PDL">4. Kemeja Kerja / PDH / PDL</option>
+                            <option value="Kerudung Sekolah">5. Kerudung Sekolah</option>
+                            <option value="Seragam Sekolah">6. Seragam Sekolah</option>
+                            <option value="Seragam Pondok">7. Seragam Pondok</option>
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold">Nama Varian Produk *</label>
+                        <input type="text" id="namaVarian" class="form-control" placeholder="Contoh: Kemeja PDL Lengan Panjang" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Estimasi Konsumsi Kain / Pcs *</label>
+                        <input type="number" step="0.001" id="estimasiKonsumsiKain" class="form-control" placeholder="Contoh: 1.500" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Satuan Konsumsi Kain *</label>
+                        <select id="satuanKain" class="form-select" required>
+                            <option value="Meter">Meter</option>
+                            <option value="Kg">Kg</option>
+                            <option value="Yard">Yard</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><hr class="my-1"><small class="text-primary fw-bold">Matriks Tarif Upah Borongan per Pcs (Rp):</small></div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tarif Potong (Cutting)</label>
+                        <input type="number" id="tarifPotong" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tarif Jahit (Sewing)</label>
+                        <input type="number" id="tarifJahit" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Tarif Obras / Neci</label>
+                        <input type="number" id="tarifObrasNeci" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Tarif Lubang & Pasang Kancing</label>
+                        <input type="number" id="tarifKancing" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Tarif QC, Steam & Packing</label>
+                        <input type="number" id="tarifFinishingPack" class="form-control" value="0" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Produk & Tarif</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 4. MODAL MASTER PEKERJA & VENDOR -->
+<div class="modal fade" id="modalPekerja" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formPekerja" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="modalPekerjaTitle">Tambah Tukang / Vendor Makloon</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pekerjaId">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Nama Lengkap / Nama Vendor *</label>
+                        <input type="text" id="namaPekerja" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Tipe SDM *</label>
+                        <select id="tipePekerja" class="form-select" required>
+                            <option value="Tukang Internal">Tukang Internal</option>
+                            <option value="Vendor Makloon">Vendor Makloon</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Spesialisasi *</label>
+                        <select id="spesialisasiPekerja" class="form-select" required>
+                            <option value="Potong">Potong</option>
+                            <option value="Sablon">Sablon</option>
+                            <option value="Bordir">Bordir</option>
+                            <option value="Jahit Kasar">Jahit Kasar</option>
+                            <option value="Jahit Halus/Jas">Jahit Halus/Jas</option>
+                            <option value="Finishing">Finishing</option>
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold">No. WhatsApp</label>
+                        <input type="text" id="noWaPekerja" class="form-control" placeholder="0812xxxxxxxx">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Status Aktif</label>
+                        <select id="statusAktifPekerja" class="form-select">
+                            <option value="true">Aktif</option>
+                            <option value="false">Non-Aktif</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Pekerja</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 5. MODAL PESANAN INDUK (INVOICE KLIEN) -->
+<div class="modal fade" id="modalPesanan" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="formPesanan" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="modalPesananTitle">Form Pesanan Induk Klien</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pesananId">
+                <input type="hidden" id="pesananDibayarLama" value="0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">No. Invoice *</label>
+                        <input type="text" id="noInvoice" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Nama PIC Klien *</label>
+                        <input type="text" id="namaKlien" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Sekolah / Pondok / Instansi *</label>
+                        <input type="text" id="instansiKlien" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">No. WhatsApp Klien</label>
+                        <input type="text" id="noWaKlien" class="form-control" placeholder="0812xxxxxxxx">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tanggal Pesan *</label>
+                        <input type="date" id="tanggalPesan" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Deadline Kirim *</label>
+                        <input type="date" id="deadlineKirim" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Total Tagihan (Rp) *</label>
+                        <input type="number" id="totalTagihan" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Total Sudah Dibayar / DP (Rp) *</label>
+                        <input type="number" id="totalDibayar" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Status Order *</label>
+                        <select id="statusOrder" class="form-select" required>
+                            <option value="Draft">Draft</option>
+                            <option value="Produksi">Produksi</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Dikirim">Dikirim</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check bg-light p-2 rounded border">
+                            <input class="form-check-input ms-1" type="checkbox" id="catatKasOtomatis" checked>
+                            <label class="form-check-label small ms-2" for="catatKasOtomatis">
+                                Otomatis catat penambahan pembayaran DP/Pelunasan ke dalam <strong>Buku Kas Pemasukan</strong>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Pesanan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 6. MODAL GENERATOR SPK, KALKULATOR BOM & BUILDER UKURAN -->
+<div class="modal fade" id="modalSpk" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <form id="formSpk" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title fw-bold" id="modalSpkTitle"><i class="fa-solid fa-scroll me-2"></i>Generator Surat Perintah Kerja (SPK) & Rincian Ukuran</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="spkId">
+                <input type="hidden" id="spkUrlMockup">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">No. SPK *</label>
+                        <input type="text" id="noSpk" class="form-control" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Pilih Pesanan Induk (Invoice Klien) *</label>
+                        <select id="spkPesananId" class="form-select" required></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Varian Produk (7 Lini) *</label>
+                        <select id="spkProdukId" class="form-select" onchange="hitungKalkulatorBOM()" required></select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Bahan Utama di Gudang *</label>
+                        <select id="spkBahanId" class="form-select" onchange="hitungKalkulatorBOM()" required></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Warna Kain *</label>
+                        <input type="text" id="spkWarnaKain" class="form-control" placeholder="Contoh: Navy / Putih" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Jenis Aplikasi *</label>
+                        <select id="spkJenisAplikasi" class="form-select" required>
+                            <option value="Sablon Plastisol/DTF">Sablon Plastisol/DTF</option>
+                            <option value="Bordir Komputer">Bordir Komputer</option>
+                            <option value="Polos">Polos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Status Awal</label>
+                        <select id="spkStatusTahapan" class="form-select">
+                            <option value="Antri Potong">Antri Potong</option>
+                            <option value="Cutting">Cutting</option>
+                            <option value="Sablon/Bordir">Sablon/Bordir</option>
+                            <option value="Sewing">Sewing</option>
+                            <option value="Kancing">Kancing</option>
+                            <option value="QC & Trimming">QC & Trimming</option>
+                            <option value="Steam & Packing">Steam & Packing</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- KALKULATOR BOM OTOMATIS & UPLOAD MOCKUP TERKOMPRESI -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-7">
+                        <div class="p-3 rounded-3 border bg-light h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold small text-uppercase text-primary"><i class="fa-solid fa-calculator me-1"></i>Kalkulator BOM Kebutuhan Kain Otomatis</span>
+                                <span id="bomStatusCukup" class="badge bg-secondary">Pilih produk & bahan</span>
+                            </div>
+                            <div class="row text-center g-2">
+                                <div class="col-4">
+                                    <div class="bg-white p-2 rounded border">
+                                        <div class="text-muted" style="font-size:0.72rem;">Total Qty Rincian</div>
+                                        <div class="fw-bold fs-6" id="displayTotalQtyPesan">0 Pcs</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-white p-2 rounded border">
+                                        <div class="text-muted" style="font-size:0.72rem;">Estimasi Kebutuhan Kain</div>
+                                        <div class="fw-bold fs-6 text-primary" id="bomEstimasiKain">0</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-white p-2 rounded border">
+                                        <div class="text-muted" style="font-size:0.72rem;">Stok Tersedia di Gudang</div>
+                                        <div class="fw-bold fs-6" id="bomStokGudang">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="potongStokOtomatis">
+                                <label class="form-check-label small" for="potongStokOtomatis">
+                                    Potong langsung stok gudang bahan sesuai estimasi BOM saat SPK baru disimpan
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="p-3 rounded-3 border bg-light h-100 d-flex gap-3 align-items-center">
+                            <img id="previewMockupImg" src="https://placehold.co/100x100?text=Mockup" alt="Preview" class="rounded border object-fit-cover" style="width:85px;height:85px;">
+                            <div class="flex-grow-1">
+                                <label class="form-label small fw-semibold mb-1">Upload Desain Mockup / Sampel</label>
+                                <input type="file" id="spkFileMockup" class="form-control form-control-sm" accept="image/*">
+                                <small class="text-muted d-block mt-1" id="infoKompresiMockup" style="font-size:0.7rem;">
+                                    Otomatis dikompresi maks 1000px (JPEG 70%) sebelum diunggah ke Supabase Storage.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BUILDER BARIS DINAMIS RINCIAN UKURAN (SIZE BREAKDOWN) -->
+                <div class="border rounded-3 p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-ruler-combined text-success me-1"></i>Rincian Ukuran (Size Breakdown) & Kelompok Kelas/Kamar</h6>
+                            <small class="text-muted">Tambahkan baris ukuran S/M/L/XL/XXL atau Nomor, Putra/Putri, serta keterangan grup</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="tambahBarisUkuran()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Baris Ukuran
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:20%">Ukuran (S/M/L/XL/No)</th>
+                                    <th style="width:20%">Gender (Putra/Putri)</th>
+                                    <th style="width:35%">Kelompok Kelas / Kamar Pondok</th>
+                                    <th style="width:15%">Qty Pesan (Pcs)</th>
+                                    <th style="width:10%" class="text-center">Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyRincianUkuran"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label small fw-semibold">Catatan Spesifikasi Produksi (Detail Jahitan / Posisi Titik Bordir / Sablon)</label>
+                    <textarea id="spkCatatanProduksi" class="form-control" rows="2" placeholder="Contoh: Jahit rantai pundak, bordir dada kiri 7cm, punggung sablon plastisol 3 warna..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan SPK & Rincian Ukuran</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 7. MODAL UPDATE TAHAPAN WIP & VALIDASI HASIL POTONG (CUTTING) -->
+<div class="modal fade" id="modalUpdateTahapan" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form id="formUpdateTahapan" class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold"><i class="fa-solid fa-arrows-spin me-2"></i>Update Tahapan Produksi & Validasi Hasil Cutting</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="updSpkId">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">No. SPK</label>
+                        <input type="text" id="updNoSpkReadonly" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tahapan Saat Ini</label>
+                        <input type="text" id="updTahapanSekarang" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Pindah ke Tahapan Baru *</label>
+                        <select id="updTahapanBaru" class="form-select border-primary" required>
+                            <option value="Antri Potong">Antri Potong</option>
+                            <option value="Cutting">Cutting</option>
+                            <option value="Sablon/Bordir">Sablon/Bordir</option>
+                            <option value="Sewing">Sewing</option>
+                            <option value="Kancing">Kancing</option>
+                            <option value="QC & Trimming">QC & Trimming</option>
+                            <option value="Steam & Packing">Steam & Packing</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Total Qty Pesanan Awal</label>
+                        <input type="number" id="updQtyPesanReadonly" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-danger">Qty Hasil Potong Riil (Wajib jika sudah Cutting) *</label>
+                        <input type="number" min="0" id="updQtyHasilPotong" class="form-control border-danger fw-bold" required>
+                        <small class="text-muted">Angka ini menjadi batas maksimal kuantitas untuk distribusi tukang sablon & jahit.</small>
+                    </div>
+                </div>
+
+                <!-- Rincian Potong Riil per Ukuran -->
+                <div class="mt-3" id="containerRincianPotongRiil">
+                    <label class="form-label small fw-bold">Update Qty Potong Riil & Selesai per Rincian Ukuran:</label>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ukuran & Gender</th>
+                                    <th>Grup Kelas/Kamar</th>
+                                    <th>Qty Pesan</th>
+                                    <th>Qty Potong Riil</th>
+                                    <th>Qty Selesai Packing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyPotongRiil"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Perubahan Tahapan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 8. MODAL DISTRIBUSI TUKANG / SURAT JALAN MAKLOON -->
+<div class="modal fade" id="modalDistribusiTukang" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formDistribusiTukang" class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title fw-bold"><i class="fa-solid fa-share-nodes me-2"></i>Distribusi Pekerjaan ke Tukang / Makloon</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Pilih SPK Aktif *</label>
+                    <select id="distSpkId" class="form-select" onchange="onChangeDistribusiSpk()" required></select>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Tahapan Pengerjaan *</label>
+                        <select id="distTahapan" class="form-select" onchange="onChangeDistribusiSpk()" required>
+                            <option value="Potong">Potong</option>
+                            <option value="Sablon">Sablon</option>
+                            <option value="Bordir">Bordir</option>
+                            <option value="Jahit">Jahit</option>
+                            <option value="Obras">Obras</option>
+                            <option value="Kancing">Kancing</option>
+                            <option value="Finishing">Finishing</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Pilih Tukang / Vendor *</label>
+                        <select id="distPekerjaId" class="form-select" required></select>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 small mb-3">
+                    <div>Batas Qty Hasil Potong SPK: <strong id="distBatasQtyPotong">0</strong> Pcs</div>
+                    <div>Sisa Kuota Tahapan Ini yang Belum Dibagikan: <strong id="distSisaKuotaTahapan" class="text-danger">0</strong> Pcs</div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Qty Diserahkan *</label>
+                        <input type="number" min="1" id="distQtyDiserahkan" class="form-control fw-bold" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tarif / Pcs (Rp) *</label>
+                        <input type="number" min="0" id="distTarifPerPcs" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Tanggal Mulai *</label>
+                        <input type="date" id="distTanggalMulai" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-check me-1"></i> Serahkan Pekerjaan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 9. MODAL INPUT HASIL QC PEKERJAAN TUKANG -->
+<div class="modal fade" id="modalInputQc" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formInputQc" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title fw-bold"><i class="fa-solid fa-clipboard-check me-2"></i>Input Hasil QC & Setoran Tukang/Vendor</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="qcLogId">
+                <input type="hidden" id="qcSpkId">
+                <input type="hidden" id="qcTarifHidden">
+
+                <div class="p-2 bg-light rounded border mb-3 small" id="qcInfoSpkPekerja"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Qty Diserahkan</label>
+                        <input type="number" id="qcQtyDiserahkan" class="form-control bg-light" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-success">Qty Lolos QC (Bagus) *</label>
+                        <input type="number" min="0" id="qcQtySelesaiBagus" class="form-control border-success fw-bold" oninput="hitungPreviewUpahQc()" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-danger">Qty Reject / Cacat *</label>
+                        <input type="number" min="0" id="qcQtyReject" class="form-control border-danger" value="0" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Tanggal Selesai Setor *</label>
+                        <input type="date" id="qcTanggalSelesai" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Hak Upah Borongan</label>
+                        <input type="text" id="qcEstimasiUpah" class="form-control bg-light fw-bold text-success" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Hasil QC</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 10. MODAL TRANSAKSI KEUANGAN (BUKU KAS) -->
+<div class="modal fade" id="modalTransaksiKas" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formTransaksiKas" class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold">Catat Transaksi Arus Kas</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Tanggal *</label>
+                        <input type="date" id="kasTanggal" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Jenis Arus Kas *</label>
+                        <select id="kasJenis" class="form-select" required>
+                            <option value="Pemasukan">Pemasukan</option>
+                            <option value="Pengeluaran">Pengeluaran</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Kategori *</label>
+                        <select id="kasKategori" class="form-select" required>
+                            <option value="DP Klien">DP Klien</option>
+                            <option value="Pelunasan Klien">Pelunasan Klien</option>
+                            <option value="Beli Kain/Aksesoris">Beli Kain/Aksesoris</option>
+                            <option value="Bayar Makloon">Bayar Makloon</option>
+                            <option value="Bayar Upah Tukang">Bayar Upah Tukang</option>
+                            <option value="Operasional">Operasional</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nominal (Rp) *</label>
+                        <input type="number" min="1" id="kasNominal" class="form-control fw-bold" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Keterangan Lengkap *</label>
+                        <textarea id="kasKeterangan" class="form-control" rows="2" required placeholder="Contoh: Bayar listrik & benang obras bulanan"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Transaksi Kas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SCRIPTS (CDN LIBRARIES & APP.JS)                                       -->
+<!-- ====================================================================== -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables & Export Plugins -->
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<!-- SweetAlert2 & Supabase JS Client v2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Main Application Script -->
+<script src="app.js"></script>
+</body>
+</html>
